@@ -1,6 +1,6 @@
 package com.github.plippe.cakka.core
 
-import io.circe.Encoder
+import io.circe.{Decoder, Encoder}
 
 trait TellableActorRef[F[_]] {
 
@@ -11,7 +11,8 @@ trait TellableActorRef[F[_]] {
 
 trait AskableActorRef[F[_]] {
 
-  def ?[A](msg: A)(implicit enc: Encoder[A]): F[String] = ask(msg)
-  def ask[A](msg: A)(implicit enc: Encoder[A]): F[String]
+  def ?[A, B](msg: A)(implicit enc: Encoder[A], dec: Decoder[B]): F[B] =
+    ask(msg)
+  def ask[A, B](msg: A)(implicit enc: Encoder[A], dec: Decoder[B]): F[B]
 
 }

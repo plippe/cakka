@@ -18,6 +18,6 @@ object Main extends App {
   println("TELL - END")
 
   println("ASK - START")
-  println(actor.?("ASK"))
+  println(actor.?[String, Unit]("ASK"))
   println("ASK - END")
 }
