@@ -4,15 +4,14 @@ import io.circe.{Decoder, Encoder}
 
 trait TellableActorRef[F[_]] {
 
-  def ![A](msg: A)(implicit enc: Encoder[A]): F[Unit] = tell(msg)
-  def tell[A](msg: A)(implicit enc: Encoder[A]): F[Unit]
+  def ![A: Encoder](msg: A): F[Unit] = tell(msg)
+  def tell[A: Encoder](msg: A): F[Unit]
 
 }
 
 trait AskableActorRef[F[_]] {
 
-  def ?[A, B](msg: A)(implicit enc: Encoder[A], dec: Decoder[B]): F[B] =
-    ask(msg)
-  def ask[A, B](msg: A)(implicit enc: Encoder[A], dec: Decoder[B]): F[B]
+  def ?[A: Encoder, B: Decoder](msg: A): F[B] = ask(msg)
+  def ask[A: Encoder, B: Decoder](msg: A): F[B]
 
 }
