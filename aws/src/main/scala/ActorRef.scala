@@ -2,55 +2,52 @@ package com.github.plippe.cakka.aws
 
 import cats._
 import cats.implicits._
-import com.amazonaws.services.lambda.{AWSLambda => OfficialAwsLambda}
-import com.amazonaws.services.lambda.model.InvokeRequest
+import com.amazonaws.services.lambda.AWSLambda
+import com.amazonaws.services.lambda.model.{
+  InvokeRequest,
+  InvokeResult,
+  InvocationType
+}
 import io.circe.Encoder
 import io.circe.parser._
 import io.circe.syntax._
-import scala.concurrent.{ExecutionContext, Future}
 
 import com.github.plippe.cakka.core._
 
-class AwsLambdaActorRef[F[_]](awsLambda: AwsLambda[F], functionName: String)(
-    implicit F: MonadError[F, Throwable])
-    extends TellableActorRef
+class AwsLambdaActorRef[F[_]: MonadError[?[_], Throwable]](awsLambda: AWSLambda,
+                                                           functionName: String)
+    extends TellableActorRef[F]
     with AskableActorRef[F] {
 
-  override def tell[A](msg: A)(implicit enc: Encoder[A]): Unit = {
-    val request = invokeRequest(msg)
-    awsLambda.invoke(request)
-    ()
+  override def tell[A](msg: A)(implicit enc: Encoder[A]): F[Unit] = {
+    val req = invokeRequest(msg, InvocationType.Event)
+    invoke(req).map(_ => ())
   }
 
   override def ask[A](msg: A)(implicit enc: Encoder[A]): F[String] = {
-
-    val request = invokeRequest(msg)
-    awsLambda
-      .invoke(request)
-      .map(result => new String(result.getPayload.array))
+    val req = invokeRequest(msg, InvocationType.RequestResponse)
+    invoke(req)
+      .map(res => new String(res.getPayload.array))
       .flatMap { payload =>
         parse(payload)
           .flatMap { _.hcursor.get[String]("errorMessage") }
           .fold(
             { _ =>
-              F.pure(payload)
+              MonadError[F, Throwable].pure(payload)
             }, { errorMessage =>
-              F.raiseError(new Throwable(errorMessage))
+              MonadError[F, Throwable].raiseError(new Throwable(errorMessage))
             }
           )
       }
   }
 
-  def invokeRequest[A](msg: A)(implicit enc: Encoder[A]): InvokeRequest =
+  def invoke(req: InvokeRequest): F[InvokeResult] =
+    MonadError[F, Throwable].catchNonFatal(awsLambda.invoke(req))
+
+  def invokeRequest[A](msg: A, invocationType: InvocationType)(
+      implicit enc: Encoder[A]): InvokeRequest =
     new InvokeRequest()
       .withFunctionName(functionName)
       .withPayload(msg.asJson.noSpaces)
-}
-
-object AwsLambdaActorRef {
-  def apply(aws: OfficialAwsLambda, functionName: String)(
-      implicit ec: ExecutionContext): AwsLambdaActorRef[Future] = {
-    val safeAws = AwsLambda(aws)
-    new AwsLambdaActorRef[Future](safeAws, functionName)
-  }
+      .withInvocationType(invocationType)
 }
