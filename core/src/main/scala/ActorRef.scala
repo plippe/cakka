@@ -2,10 +2,10 @@ package com.github.plippe.cakka.core
 
 import io.circe.Encoder
 
-trait TellableActorRef {
+trait TellableActorRef[F[_]] {
 
-  def ![A](msg: A)(implicit enc: Encoder[A]): Unit = tell(msg)
-  def tell[A](msg: A)(implicit enc: Encoder[A]): Unit
+  def ![A](msg: A)(implicit enc: Encoder[A]): F[Unit] = tell(msg)
+  def tell[A](msg: A)(implicit enc: Encoder[A]): F[Unit]
 
 }
 
