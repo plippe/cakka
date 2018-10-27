@@ -1,6 +1,7 @@
 
 lazy val commonSettings = Seq(
-  scalafmtOnCompile := true
+  scalafmtOnCompile := true,
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
 )
 
 lazy val core = project
@@ -17,9 +18,9 @@ lazy val aws = project
   .dependsOn(core)
   .settings(commonSettings)
   .settings(
-    libraryDependencies += "com.amazonaws" % "aws-java-sdk-lambda" % "1.11.427",
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
+    libraryDependencies += "com.amazonaws" % "aws-java-sdk-lambda" % "1.11.427"
   )
 
 lazy val example = project
   .dependsOn(aws)
+  .settings(commonSettings)
